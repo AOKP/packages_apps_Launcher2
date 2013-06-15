@@ -24,6 +24,7 @@ import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
@@ -45,6 +46,7 @@ import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Process;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -231,7 +233,7 @@ class RectCache extends WeakReferenceThreadLocal<Rect> {
 public class AppsCustomizePagedView extends PagedViewWithDraggableItems implements
         View.OnClickListener, View.OnKeyListener, DragSource,
         PagedViewIcon.PressedCallback, PagedViewWidget.ShortPressListener,
-        LauncherTransitionable {
+        LauncherTransitionable, PagedView.PageSwitchListener {
     static final String TAG = "AppsCustomizePagedView";
 
     /**
@@ -241,6 +243,9 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
         Applications,
         Widgets
     }
+
+    private SharedPreferences mSharedPrefs;
+    private Handler mH = new Handler();
 
     // Refs
     private Launcher mLauncher;
@@ -332,6 +337,9 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
         mIconCache = ((LauncherApplication) context.getApplicationContext()).getIconCache();
         mCanvas = new Canvas();
         mRunningTasks = new ArrayList<AppsCustomizeAsyncTask>();
+        mSharedPrefs = context.getSharedPreferences(LauncherApplication.getSharedPreferencesKey(),
+                 Context.MODE_PRIVATE);
+        setPageSwitchListener(this);
 
         // Save the default widget preview background
         Resources resources = context.getResources();
@@ -1909,5 +1917,22 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
         }
 
         return String.format(getContext().getString(stringId), page + 1, count);
+    }
+
+    final Runnable SetPageIndex = new Runnable () {
+        public void run() {
+            int mIndex = getMiddleComponentIndexOnCurrentPage();
+            if (mIndex != -1) {
+                mSharedPrefs.edit()
+                .putInt("current_item_index", mIndex)
+                .commit();
+            }
+        }
+    };
+
+    @Override
+    public void onPageSwitch(View newPage, int newPageIndex) {
+        // need to give the page time to change before getting an index.
+        mH.postDelayed(SetPageIndex, 250);
     }
 }

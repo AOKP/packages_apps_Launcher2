@@ -919,7 +919,8 @@ public final class Launcher extends Activity
                         mAppsCustomizeContent.getCurrentPage());
             }
 
-            int currentIndex = savedState.getInt("apps_customize_currentIndex");
+            //int currentIndex = savedState.getInt("apps_customize_currentIndex");
+            int currentIndex = mSharedPrefs.getInt("current_item_index", 0);
             mAppsCustomizeContent.restorePageForIndex(currentIndex);
         }
     }
